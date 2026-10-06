@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClassObserver 🌱</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- LOGIN-BEREICH -->
+  <div id="login-screen" class="screen">
+    <div class="login-box">
+      <h1>🌱 ClassObserver</h1>
+      <p class="subtitle">Sonstige Mitarbeit – einfach dokumentieren</p>
+
+      <label for="password">Passwort</label>
+      <input type="password" id="password" placeholder="Passwort eingeben" />
+      <p id="error-msg" class="error hidden">❌ Falsches Passwort. Bitte erneut versuchen.</p>
+      <button onclick="login()">Anmelden</button>
+
+      <p class="hint">
+        Noch kein Passwort gesetzt?
+        <span onclick="showSetPassword()" class="link">Passwort erstellen</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- PASSWORT ERSTELLEN -->
+  <div id="set-password-screen" class="screen hidden">
+    <div class="login-box">
+      <h1>🔐 Passwort erstellen</h1>
+      <p class="subtitle">Wähle ein sicheres Passwort für deinen Zugang.</p>
+
+      <label for="new-password">Neues Passwort</label>
+      <input type="password" id="new-password" placeholder="Neues Passwort" />
+
+      <label for="confirm-password">Passwort bestätigen</label>
+      <input type="password" id="confirm-password" placeholder="Passwort wiederholen" />
+
+      <p id="set-error-msg" class="error hidden">❌ Die Passwörter stimmen nicht überein.</p>
+      <p id="set-success-msg" class="success hidden">✅ Passwort gespeichert! Du kannst dich jetzt anmelden.</p>
+
+      <button onclick="savePassword()">Passwort speichern</button>
+      <p class="hint">
+        <span onclick="showLogin()" class="link">← Zurück zum Login</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- HAUPT-APP (nach Login) -->
+  <div id="app-screen" class="screen hidden">
+    <header>
+      <h2>🌱 ClassObserver</h2>
+      <button class="logout-btn" onclick="logout()">Abmelden</button>
+    </header>
+
+    <main>
+
+      <!-- NAVIGATION -->
+<nav class="main-nav">
+  <button class="nav-btn active" onclick="showSection('klassen')">🏫 Klassen</button>
+  <button class="nav-btn" onclick="showSection('stundenplan')">📅 Stundenplan</button>
+  <button class="nav-btn" onclick="showSection('beobachtung')">🎯 Beobachtung</button>
+  <button class="nav-btn" onclick="showSection('auswertung')">📊 Auswertung</button>
+  <button class="nav-btn" onclick="showSection('einstellungen')">⚙️ Einstellungen</button>
+</nav>
+
+      <!-- BEREICH: KLASSEN -->
+<section id="section-klassen" class="content-section">
+  <h2>🏫 Klassenverwaltung</h2>
+
+  <!-- Neue Klasse anlegen -->
+  <div class="card">
+    <h3>Neue Klasse anlegen</h3>
+    <div class="inline-form">
+      <input type="text" id="new-class-name" placeholder="z. B. 3a" maxlength="10" />
+      <button onclick="addClass()">+ Klasse hinzufügen</button>
+    </div>
+    <p id="class-error" class="error hidden">❌ Bitte einen Klassennamen eingeben.</p>
+    <p id="class-duplicate-error" class="error hidden">❌ Diese Klasse existiert bereits.</p>
+  </div>
+
+  <!-- Klassenübersicht -->
+  <div id="class-list" class="card-grid"></div>
+
+  <!-- Detailansicht einer Klasse -->
+  <div id="class-detail" class="hidden">
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <h3 id="class-detail-title">Klasse …</h3>
+        <button onclick="closeClassDetail()"
+          style="background:white; color:#4caf50; border:2px solid #4caf50;">
+          ← Zurück zur Übersicht
+        </button>
+      </div>
+
+      <!-- Schüler*in hinzufügen -->
+      <div class="inline-form" style="margin-top:16px;">
+        <input type="text" id="new-student-name"
+          placeholder="Vorname Nachname"
+          maxlength="60"
+          onkeydown="if(event.key==='Enter') addStudent()" />
+        <button onclick="addStudent()">+ Schüler*in hinzufügen</button>
+      </div>
+      <p id="student-error" class="error hidden">❌ Bitte einen Namen eingeben.</p>
+      <p id="student-duplicate-error" class="error hidden">❌ Diese Person ist bereits eingetragen.</p>
+
+      <!-- Schüler*innen-Liste -->
+      <div style="margin-top:20px;">
+        <p class="progress-label" id="student-count-label"></p>
+        <ul id="student-list" class="student-list-edit"></ul>
+        <p id="student-empty" class="empty-hint hidden">
+          🌱 Noch keine Schülerinnen und Schüler eingetragen.
+        </p>
+      </div>
+
+      <!-- Klasse löschen -->
+      <div style="margin-top:24px; padding-top:16px; border-top:2px solid #f0f7f0;">
+        <button onclick="deleteClass()"
+          style="background:white; color:#c62828; border:2px solid #c62828; font-size:0.88rem;">
+          🗑️ Klasse löschen
+        </button>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+      <!-- BEREICH: STUNDENPLAN -->
+<section id="section-stundenplan" class="content-section hidden">
+  <h2>📅 Stundenplan</h2>
+
+  <!-- Einstellungen -->
+  <div class="card">
+    <h3>Stunde hinzufügen</h3>
+    <div class="stundenplan-form">
+
+      <div class="form-group">
+        <label>Wochentag</label>
+        <select id="sp-day">
+          <option value="Montag">Montag</option>
+          <option value="Dienstag">Dienstag</option>
+          <option value="Mittwoch">Mittwoch</option>
+          <option value="Donnerstag">Donnerstag</option>
+          <option value="Freitag">Freitag</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Stunde</label>
+        <select id="sp-lesson">
+          <option value="1">1. Stunde</option>
+          <option value="2">2. Stunde</option>
+          <option value="3">3. Stunde</option>
+          <option value="4">4. Stunde</option>
+          <option value="5">5. Stunde</option>
+          <option value="6">6. Stunde</option>
+          <option value="7">7. Stunde</option>
+          <option value="8">8. Stunde</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Uhrzeit (von)</label>
+        <input type="time" id="sp-time-from" value="08:00" />
+      </div>
+
+      <div class="form-group">
+        <label>Uhrzeit (bis)</label>
+        <input type="time" id="sp-time-to" value="08:45" />
+      </div>
+
+      <div class="form-group">
+        <label>Fach</label>
+        <input type="text" id="sp-subject" placeholder="z. B. Mathematik" maxlength="30" />
+      </div>
+
+      <div class="form-group">
+        <label>Klasse</label>
+        <select id="sp-class"></select>
+      </div>
+
+    </div>
+
+    <p id="sp-error" class="error hidden">❌ Bitte alle Felder ausfüllen.</p>
+    <p id="sp-duplicate-error" class="error hidden">❌ Diese Stunde existiert bereits.</p>
+    <button onclick="addLesson()">+ Stunde hinzufügen</button>
+  </div>
+
+  <!-- Stundenplan-Anzeige -->
+  <div id="stundenplan-grid" class="stundenplan-grid"></div>
+
+</section>
+      <section id="section-stundenplan" class="content-section hidden">
+        <h2>📅 Stundenplan</h2>
+        <p>Kommt in Schritt 3 🌱</p>
+      </section>
+
+      <!-- BEREICH: BEOBACHTUNG -->
+<section id="section-beobachtung" class="content-section hidden">
+  <h2>🎯 Beobachtung</h2>
+
+  <!-- Schritt 1: Stunde auswählen -->
+  <div id="beob-select" class="card">
+    <h3>Stunde auswählen</h3>
+    <div class="stundenplan-form">
+
+      <div class="form-group">
+        <label>Klasse</label>
+        <select id="beob-class" onchange="updateBeobLessons()"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Stunde</label>
+        <select id="beob-lesson"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Anzahl zu beobachtender Kinder</label>
+        <select id="beob-count">
+          <option value="1">1 Kind</option>
+          <option value="2">2 Kinder</option>
+          <option value="3">3 Kinder</option>
+          <option value="4" selected>4 Kinder</option>
+          <option value="5">5 Kinder</option>
+          <option value="6">6 Kinder</option>
+        </select>
+      </div>
+
+    </div>
+    <p id="beob-select-error" class="error hidden">❌ Bitte Klasse und Stunde auswählen.</p>
+    <button onclick="startBeobachtung()">🎯 Beobachtung starten</button>
+  </div>
+
+  <!-- Schritt 2: Kinder anzeigen -->
+  <div id="beob-active" class="hidden">
+
+    <div class="card">
+      <h3 id="beob-active-title">Stunde läuft...</h3>
+      <p id="beob-active-subtitle" style="color:#6a8f6a; margin-bottom:16px;"></p>
+      <p style="font-size:0.9rem; color:#6a8f6a; margin-bottom:12px;">
+        🌱 Diese Kinder heute besonders beobachten:
+      </p>
+      <div id="beob-student-cards" class="beob-student-cards"></div>
+    </div>
+
+    <!-- Schritt 3: Bewertung eintragen -->
+    <div class="card">
+      <h3>✏️ Beobachtungen eintragen</h3>
+      <p style="font-size:0.9rem; color:#6a8f6a; margin-bottom:16px;">
+        Trage am Ende der Stunde deine Beobachtungen ein:
+      </p>
+      <div id="beob-forms"></div>
+      <button onclick="saveBeobachtung()">💾 Beobachtungen speichern</button>
+      <button onclick="cancelBeobachtung()"
+        style="background:white; color:#c62828; border:2px solid #c62828; margin-left:10px;">
+        Abbrechen
+      </button>
+    </div>
+
+  </div>
+
+</section>
+      <section id="section-beobachtung" class="content-section hidden">
+        <h2>🎯 Beobachtung</h2>
+        <p>Kommt in Schritt 4 🌱</p>
+      </section>
+
+     <!-- BEREICH: AUSWERTUNG -->
+<section id="section-auswertung" class="content-section hidden">
+  <h2>📊 Auswertung</h2>
+
+  <!-- Filter -->
+  <div class="card">
+    <h3>🔍 Filter</h3>
+    <div class="stundenplan-form">
+
+      <div class="form-group">
+        <label>Klasse</label>
+        <select id="auswert-class" onchange="renderAuswertung()">
+          <option value="">Alle Klassen</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Zeitraum</label>
+        <select id="auswert-period" onchange="renderAuswertung()">
+          <option value="all">Gesamter Zeitraum</option>
+          <option value="month">Letzter Monat</option>
+          <option value="week">Letzte Woche</option>
+        </select>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Übersichtstabelle -->
+  <div class="card">
+    <h3>👥 Übersicht nach Schülerinnen und Schülern</h3>
+    <div id="auswert-table-wrap" style="overflow-x:auto;"></div>
+  </div>
+
+  <!-- Warnhinweise -->
+  <div id="auswert-warnings" class="card hidden">
+    <h3>⚠️ Noch nicht beobachtet</h3>
+    <p style="font-size:0.9rem; color:#6a8f6a; margin-bottom:12px;">
+      Diese Kinder wurden im gewählten Zeitraum noch nicht beobachtet:
+    </p>
+    <ul id="auswert-warning-list" class="student-list"></ul>
+  </div>
+
+  <!-- Export -->
+  <div class="card">
+    <h3>📤 Export</h3>
+    <p style="font-size:0.9rem; color:#6a8f6a; margin-bottom:16px;">
+      Exportiere deine Beobachtungen als CSV-Datei (z. B. für Excel oder Numbers).
+    </p>
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <button onclick="exportCSV()">📥 Als CSV exportieren</button>
+      <button onclick="exportJSON()"
+        style="background:white; color:#4caf50; border:2px solid #4caf50;">
+        💾 Datensicherung (JSON)
+      </button>
+      <button onclick="importJSON()"
+        style="background:white; color:#4caf50; border:2px solid #4caf50;">
+        📂 Datensicherung laden
+      </button>
+    </div>
+    <input type="file" id="import-file" accept=".json" style="display:none"
+      onchange="handleImport(event)" />
+    <p id="import-success" class="success hidden" style="margin-top:10px;">
+      ✅ Daten erfolgreich geladen!
+    </p>
+    <p id="import-error" class="error hidden" style="margin-top:10px;">
+      ❌ Fehler beim Laden der Datei.
+    </p>
+  </div>
+
+</section>
+      <section id="section-auswertung" class="content-section hidden">
+        <h2>📊 Auswertung</h2>
+        <p>Kommt in Schritt 6 🌱</p>
+      </section>
+<!-- BEREICH: EINSTELLUNGEN -->
+<section id="section-einstellungen" class="content-section hidden">
+  <h2>⚙️ Einstellungen</h2>
+
+  <!-- BEWERTUNGSSKALA -->
+  <div class="card">
+    <h3>🌱 Bewertungsskala</h3>
+    <p style="font-size:0.9rem; color:#6a8f6a; margin-bottom:16px;">
+      Wähle die Skala, mit der du die Kriterien bewertest.
+      Die Pflanzenskala ist voreingestellt.
+    </p>
+
+    <div class="scale-choice">
+
+      <div class="scale-option" id="scale-opt-pflanze" onclick="selectScale('pflanze')">
+        <div class="scale-option-icons">🌱 🌿 🪴 🌳</div>
+        <div class="scale-option-title">Pflanzenskala</div>
+        <div class="scale-option-desc">Growth Mindset · 4 Stufen</div>
+        <div class="scale-option-badge">Standard</div>
+      </div>
+
+      <div class="scale-option" id="scale-opt-plus" onclick="selectScale('plus')">
+        <div class="scale-option-icons">++ + 0 – – –</div>
+        <div class="scale-option-title">+/– Skala</div>
+        <div class="scale-option-desc">Schnelle Übersicht · 5 Stufen</div>
+      </div>
+
+      <div class="scale-option" id="scale-opt-noten" onclick="selectScale('noten')">
+        <div class="scale-option-icons">1 · 2 · 3 · 4 · 5 · 6</div>
+        <div class="scale-option-title">Notenskala</div>
+        <div class="scale-option-desc">Klassisch · 6 Stufen</div>
+      </div>
+
+    </div>
+
+    <p id="scale-saved-msg" class="success hidden">✅ Skala gespeichert!</p>
+  </div>
+
+  <!-- BEWERTUNGSKRITERIEN -->
+  <div class="card">
+    <h3>📋 Bewertungskriterien</h3>
+    <p style="font-size:0.9rem; color:#6a8f6a; margin-bottom:16px;">
+      Lege fest, welche Kriterien du bei der Beobachtung bewerten möchtest.
+    </p>
+
+    <!-- Vorhandene Kriterien -->
+    <ul id="criteria-list" class="criteria-edit-list"></ul>
+
+    <!-- Neues Kriterium hinzufügen -->
+    <div class="inline-form" style="margin-top:12px;">
+      <input type="text" id="new-criteria-input"
+        placeholder="z. B. Hat konzentriert gearbeitet" maxlength="80"
+        onkeydown="if(event.key==='Enter') addCriteria()" />
+      <button onclick="addCriteria()">+ Hinzufügen</button>
+    </div>
+    <p id="criteria-error" class="error hidden">❌ Bitte einen Text eingeben.</p>
+    <p id="criteria-duplicate-error" class="error hidden">❌ Dieses Kriterium existiert bereits.</p>
+  </div>
+
+  <!-- BEOBACHTUNGSZEITRAUM -->
+  <div class="card">
+    <h3>📅 Beobachtungszeitraum</h3>
+    <p style="font-size:0.9rem; color:#6a8f6a; margin-bottom:16px;">
+      In welchem Zeitraum soll jedes Kind mindestens einmal beobachtet worden sein?
+    </p>
+    <div class="form-group" style="max-width:260px;">
+      <label>Zeitraum</label>
+      <select id="obs-period" onchange="savePeriod()">
+        <option value="week">Innerhalb einer Woche</option>
+        <option value="month" selected>Innerhalb eines Monats</option>
+      </select>
+    </div>
+    <p id="period-saved-msg" class="success hidden">✅ Zeitraum gespeichert!</p>
+  </div>
+
+  <!-- PASSWORT ÄNDERN -->
+  <div class="card">
+    <h3>🔐 Passwort ändern</h3>
+    <div class="stundenplan-form">
+      <div class="form-group">
+        <label>Neues Passwort</label>
+        <input type="password" id="change-pw-new" placeholder="Neues Passwort" />
+      </div>
+      <div class="form-group">
+        <label>Passwort bestätigen</label>
+        <input type="password" id="change-pw-confirm" placeholder="Wiederholen" />
+      </div>
+    </div>
+    <p id="change-pw-error" class="error hidden">❌ Die Passwörter stimmen nicht überein.</p>
+    <p id="change-pw-success" class="success hidden">✅ Passwort erfolgreich geändert!</p>
+    <button onclick="changePassword()">🔐 Passwort speichern</button>
+  </div>
+
+</section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
