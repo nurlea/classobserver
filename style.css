@@ -590,3 +590,24 @@ header h2 {
   box-shadow: 0 6px 20px rgba(76,175,80,0.2);
   transform: translateY(-2px);
 }
+/* === GOOGLE DRIVE BUTTON === */
+.drive-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid white;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin-top: 0;
+  margin-left: 8px;
+  transition: background 0.2s;
+}
+
+.drive-btn:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+.drive-status {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.9);
+  margin-left: 8px;
+}
