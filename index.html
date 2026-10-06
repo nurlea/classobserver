@@ -5,8 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ClassObserver 🌱</title>
   <link rel="stylesheet" href="style.css" />
+  <!-- Google Identity Services -->
+   <!-- Nach dem <title>-Tag einfügen -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Google API Client -->
+<script src="https://apis.google.com/js/api.js" async defer></script>
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<!-- Google API Client -->
+<script src="https://apis.google.com/js/api.js" async defer></script>
 </head>
 <body>
+    <!-- Google Drive Sync-Leiste -->
+<div id="sync-bar" style="
+  background: #e8f5e9;
+  padding: 10px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-bottom: 2px solid #c8e6c9;
+  font-size: 0.88rem;
+">
+  <span id="sync-status">☁️ Nicht verbunden</span>
+  <button id="btn-login" onclick="googleSignIn()"
+    style="font-size:0.82rem; padding:6px 14px;">
+    🔑 Mit Google Drive verbinden
+  </button>
+  <button id="btn-logout" onclick="googleSignOut()"
+    style="font-size:0.82rem; padding:6px 14px;
+    background:white; color:#4caf50; border:2px solid #4caf50; display:none;">
+    🔓 Abmelden
+  </button>
+  <span id="sync-last" style="color:#6a8f6a; margin-left:auto;"></span>
+</div>
 
   <!-- LOGIN-BEREICH -->
   <div id="login-screen" class="screen">
@@ -53,6 +87,11 @@
     <header>
       <h2>🌱 ClassObserver</h2>
       <button class="logout-btn" onclick="logout()">Abmelden</button>
+      <!-- Direkt nach dem Logout-Button im <header> einfügen -->
+<button class="drive-btn" id="drive-btn" onclick="toggleDriveLogin()">
+  ☁️ Google Drive
+</button>
+<span id="drive-status" class="drive-status"></span>
     </header>
 
     <main>
@@ -335,6 +374,15 @@
     <p id="import-error" class="error hidden" style="margin-top:10px;">
       ❌ Fehler beim Laden der Datei.
     </p>
+    <!-- Im Export-Card, nach den bestehenden Buttons einfügen -->
+<button onclick="saveToDrive()"
+  style="background:white; color:#1a73e8; border:2px solid #1a73e8;">
+  ☁️ In Drive speichern
+</button>
+<button onclick="loadFromDrive()"
+  style="background:white; color:#1a73e8; border:2px solid #1a73e8;">
+  📂 Aus Drive laden
+</button>
   </div>
 
 </section>
