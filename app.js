@@ -1,3 +1,199 @@
+// === GOOGLE DRIVE INTEGRATION ===
+const GOOGLE_CLIENT_ID = '414031848105-oiudvqvhh1n93h68jsrs2885v0esdfj6.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const BACKUP_FILENAME = 'ClassObserver_Drive_Backup.json';
+
+let driveTokenClient = null;
+let driveAccessToken = null;
+let driveFileId = null; // ID der gespeicherten Backup-Datei in Drive
+// === GOOGLE DRIVE: INITIALISIERUNG ===
+function initDrive() {
+  if (typeof google === 'undefined') return;
+
+  driveTokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: GOOGLE_CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    callback: (tokenResponse) => {
+      if (tokenResponse.error) {
+        console.error('Drive Auth Fehler:', tokenResponse.error);
+        return;
+      }
+      driveAccessToken = tokenResponse.access_token;
+      localStorage.setItem('co_drive_token', driveAccessToken);
+      updateDriveUI(true);
+    }
+  });
+
+  // Gespeicherten Token wiederherstellen
+  const savedToken = localStorage.getItem('co_drive_token');
+  if (savedToken) {
+    driveAccessToken = savedToken;
+    updateDriveUI(true);
+  }
+}
+
+// === DRIVE UI AKTUALISIEREN ===
+function updateDriveUI(connected) {
+  const btn = document.getElementById('drive-btn');
+  const status = document.getElementById('drive-status');
+  if (!btn || !status) return;
+
+  if (connected) {
+    btn.textContent = '☁️ Drive verbunden';
+    btn.style.background = 'rgba(255,255,255,0.35)';
+    status.textContent = '✅ Verbunden';
+  } else {
+    btn.textContent = '☁️ Google Drive';
+    btn.style.background = 'rgba(255,255,255,0.2)';
+    status.textContent = '';
+    driveAccessToken = null;
+    localStorage.removeItem('co_drive_token');
+    driveFileId = null;
+  }
+}
+
+// === DRIVE: ANMELDEN / ABMELDEN ===
+function toggleDriveLogin() {
+  if (driveAccessToken) {
+    if (!confirm('Drive-Verbindung trennen?')) return;
+    google.accounts.oauth2.revoke(driveAccessToken, () => {});
+    updateDriveUI(false);
+  } else {
+    if (!driveTokenClient) {
+      alert('Google API noch nicht geladen. Bitte kurz warten und erneut versuchen.');
+      return;
+    }
+    driveTokenClient.requestAccessToken();
+  }
+}
+
+// === DRIVE: BACKUP-DATEI SUCHEN ===
+async function findDriveFile() {
+  const resp = await fetch(
+    `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${BACKUP_FILENAME}'&fields=files(id,name)`,
+    { headers: { Authorization: `Bearer ${driveAccessToken}` } }
+  );
+  const data = await resp.json();
+  return data.files && data.files.length > 0 ? data.files[0].id : null;
+}
+
+// === DRIVE: IN DRIVE SPEICHERN ===
+async function saveToDrive() {
+  if (!driveAccessToken) {
+    alert('Bitte zuerst mit Google Drive verbinden (☁️-Button im Header).');
+    return;
+  }
+
+  const backup = {
+    version: 1,
+    exportDate: new Date().toISOString(),
+    classes,
+    stundenplan,
+    beobachtungen,
+    criteria,
+    activeScale,
+    obsPeriod
+  };
+
+  const content = JSON.stringify(backup, null, 2);
+  const blob = new Blob([content], { type: 'application/json' });
+
+  try {
+    // Prüfen ob Datei schon existiert
+    const existingId = await findDriveFile();
+
+    let url, method;
+    if (existingId) {
+      // Aktualisieren (PATCH)
+      url = `https://www.googleapis.com/upload/drive/v3/files/${existingId}?uploadType=media`;
+      method = 'PATCH';
+    } else {
+      // Neu anlegen (POST) im appDataFolder
+      const meta = { name: BACKUP_FILENAME, parents: ['appDataFolder'] };
+      const metaBlob = new Blob([JSON.stringify(meta)], { type: 'application/json' });
+
+      const form = new FormData();
+      form.append('metadata', metaBlob);
+      form.append('file', blob);
+
+      const createResp = await fetch(
+        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${driveAccessToken}` },
+          body: form
+        }
+      );
+      const created = await createResp.json();
+      driveFileId = created.id;
+      alert('✅ Erfolgreich in Google Drive gespeichert!');
+      return;
+    }
+
+    await fetch(url, {
+      method,
+      headers: {
+        Authorization: `Bearer ${driveAccessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: content
+    });
+
+    alert('✅ Erfolgreich in Google Drive gespeichert!');
+  } catch (err) {
+    console.error(err);
+    alert('❌ Fehler beim Speichern in Drive. Bitte erneut verbinden.');
+    updateDriveUI(false);
+  }
+}
+
+// === DRIVE: AUS DRIVE LADEN ===
+async function loadFromDrive() {
+  if (!driveAccessToken) {
+    alert('Bitte zuerst mit Google Drive verbinden (☁️-Button im Header).');
+    return;
+  }
+
+  try {
+    const fileId = await findDriveFile();
+    if (!fileId) {
+      alert('Keine Drive-Sicherung gefunden. Bitte zuerst speichern.');
+      return;
+    }
+
+    const resp = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      { headers: { Authorization: `Bearer ${driveAccessToken}` } }
+    );
+    const backup = await resp.json();
+
+    if (!backup.classes || !backup.stundenplan || !backup.beobachtungen) {
+      throw new Error('Ungültiges Format');
+    }
+
+    if (!confirm('Alle aktuellen Daten werden durch die Drive-Sicherung ersetzt. Fortfahren?')) return;
+
+    classes       = backup.classes       || [];
+    stundenplan   = backup.stundenplan   || [];
+    beobachtungen = backup.beobachtungen || [];
+    criteria      = backup.criteria      || criteria;
+    activeScale   = backup.activeScale   || 'pflanze';
+    obsPeriod     = backup.obsPeriod     || 'month';
+
+    saveData();
+    saveStundenplan();
+    saveBeobachtungen();
+    saveCriteria();
+    localStorage.setItem('co_scale', activeScale);
+    localStorage.setItem('co_obs_period', obsPeriod);
+
+    alert('✅ Daten aus Google Drive geladen!');
+    renderAuswertung();
+  } catch (err) {
+    console.error(err);
+    alert('❌ Fehler beim Laden aus Drive. Bitte erneut versuchen.');
+  }
+}
 // === AUTOMATISCHE ABMELDUNG nach 15 Minuten Inaktivität ===
 let inactivityTimer;
 
@@ -927,6 +1123,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadCriteria();
   loadScale();
   loadPeriod();
+  // NEU:
+  window.addEventListener('load', initDrive); // warten bis Google-Script geladen
 });
 
 // showSection erweitern für Einstellungen
